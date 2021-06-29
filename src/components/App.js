@@ -77,7 +77,30 @@ class App extends Component {
                 console.log("Error, withdraw: ", e)
             }
         }
+    }
 
+    async borrow(amount) {
+        if (this.state.dbank !== "undefined") {
+            try {
+                await this.state.dbank.methods.borrow().send({value: amount.toString(), from: this.state.account})
+            } catch (e) {
+                console.log("Error: ", e)
+            }
+        }
+    }
+
+    async payOff(e) {
+        e.preventDefault()
+        if (this.state.dbank !== "undefined") {
+            try {
+                const collateralEther = await this.state.dbank.methods.collateralEther(this.state.account).call({from: this.state.account})
+                const tokenBorrowed = collateralEther / 2
+                await this.state.token.methods.approve(this.state.dBankAddress, tokenBorrowed.toString()).send({from: this.state.account})
+                await this.state.dbank.methods.payOff().send({from: this.state.account})
+            } catch (e) {
+                console.log("Error, payOff: ", e)
+            }
+        }
     }
 
     constructor(props) {
@@ -155,6 +178,49 @@ class App extends Component {
                                             <button type="submit" className="btn btn-primary"
                                                     onClick={(e) => this.withdraw(e)}>WITHDRAW
                                             </button>
+                                        </div>
+                                    </Tab>
+                                    <Tab eventKey="borrow" title="Borrow">
+                                        <div>
+
+                                            <br></br>
+                                            Do you want to borrow tokens?
+                                            <br></br>
+                                            (You'll get 50% of collateral, in Tokens)
+                                            <br></br>
+                                            Type collateral amount (in ETH)
+                                            <br></br>
+                                            <br></br>
+                                            <form onSubmit={(e) => {
+                                                e.preventDefault()
+                                                let amount = this.borrowAmount.value
+                                                amount = amount * 10 **18 //convert to wei
+                                                this.borrow(amount)
+                                            }}>
+                                                <div className='form-group mr-sm-2'>
+                                                    <input
+                                                        id='borrowAmount'
+                                                        step="0.01"
+                                                        type='number'
+                                                        ref={(input) => { this.borrowAmount = input }}
+                                                        className="form-control form-control-md"
+                                                        placeholder='amount...'
+                                                        required />
+                                                </div>
+                                                <button type='submit' className='btn btn-primary'>BORROW</button>
+                                            </form>
+                                        </div>
+                                    </Tab>
+                                    <Tab eventKey="payOff" title="Payoff">
+                                        <div>
+
+                                            <br></br>
+                                            Do you want to payoff the loan?
+                                            <br></br>
+                                            (You'll receive your collateral - fee)
+                                            <br></br>
+                                            <br></br>
+                                            <button type='submit' className='btn btn-primary' onClick={(e) => this.payOff(e)}>PAYOFF</button>
                                         </div>
                                     </Tab>
                                 </Tabs>
